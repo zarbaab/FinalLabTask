@@ -8,8 +8,8 @@ plugins {
 }
 
 android {
-    namespace = "com.example.campus_life_assistant_app"
-    compileSdk = flutter.compileSdkVersion
+    namespace = "com.example.campuslifeassistant"
+    compileSdk = 34 // Specify compileSdkVersion explicitly
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -18,20 +18,22 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
+        jvmTarget = "1.8" // Fixed syntax for jvmTarget
     }
 
     defaultConfig {
-        applicationId = "com.example.campus_life_assistant_app"
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        applicationId = "com.example.campuslifeassistant"
+        minSdk = 23 // Update minSdkVersion to 23 for compatibility with Firebase Auth
+        targetSdk = 34 // Explicit target SDK version
+        versionCode = 1
+        versionName = "1.0"
     }
 
     buildTypes {
         release {
             signingConfig = signingConfigs.debug
+            minifyEnabled false
+            shrinkResources false
         }
     }
 }
@@ -41,12 +43,13 @@ flutter {
 }
 
 dependencies {
-    // Import the Firebase BoM
+    // Import the Firebase BoM (Bill of Materials)
     implementation platform('com.google.firebase:firebase-bom:33.7.0')
 
-    // Firebase Analytics (example)
+    // Firebase dependencies
     implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-database'
 
-    // Add additional Firebase services here as needed
-    // e.g., implementation 'com.google.firebase:firebase-auth'
+    // Add additional Firebase services as needed
 }

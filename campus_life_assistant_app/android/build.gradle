@@ -1,4 +1,7 @@
 plugins {
+    // Add the Android Gradle plugin with version alignment
+    id 'com.android.application' version '8.1.0' apply false
+    
     // Add the Google services Gradle plugin with version alignment
     id 'com.google.gms.google-services' version '4.3.15' apply false
 }

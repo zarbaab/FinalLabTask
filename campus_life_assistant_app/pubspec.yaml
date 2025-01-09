@@ -16,7 +16,17 @@ dependencies:
   firebase_auth: ^5.3.4
   firebase_database: ^11.2.0
   firebase_auth_web: ^5.8.0
-  firebase_analytics: 11.3.6 # Optional, if you use Analytics
+  firebase_analytics: ^11.3.6 # Optional, if you use Analytics
+  cloud_firestore: ^5.6.0
+  sqflite: ^2.3.1
+  path: ^1.8.3
+  sqflite_common_ffi: ^2.0.0
+  sqflite_common_ffi_web: 0.4.5+4 
+  path_provider: ^2.0.15
+  intl: ^0.18.0
+  firebase_messaging: ^15.1.6
+  flutter_local_notifications: ^18.0.1
+
 
 dev_dependencies:
   flutter_test:
