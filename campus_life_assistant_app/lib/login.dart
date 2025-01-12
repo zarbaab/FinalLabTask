@@ -18,18 +18,27 @@ class LoginPageState extends State<LoginPage> {
   Future<void> _login() async {
     setState(() => _isLoading = true);
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+
+      final String email = userCredential.user?.email ?? ''; // Fetch the email
+      final String username =
+          email.split('@').first; // Extract username from email
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Login Successful!")),
       );
 
-      // Navigate to the dashboard
+      // Navigate to the dashboard with the username
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        MaterialPageRoute(
+          builder: (context) =>
+              DashboardScreen(username: username), // Pass username
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

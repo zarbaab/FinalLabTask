@@ -27,31 +27,18 @@ class ClassScheduleScreenState extends State<ClassScheduleScreen> {
   }
 
   Future<void> _initializeNotifications() async {
-    // Request notification permissions
     NotificationSettings settings =
         await _firebaseMessaging.requestPermission();
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      print("User granted notification permissions");
-
-      // Handle foreground notifications
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         _showLocalNotification(message);
       });
-
-      // Handle notification clicks when the app is in the background
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         _handleNotificationClick(message);
       });
-
-      // Get and print the FCM token (optional, for debugging)
-      String? token = await _firebaseMessaging.getToken();
-      print("FCM Token: $token");
-    } else {
-      print("Notification permissions denied or not granted");
     }
 
-    // Configure local notification settings
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings initializationSettings =
@@ -60,8 +47,7 @@ class ClassScheduleScreenState extends State<ClassScheduleScreen> {
   }
 
   void _handleNotificationClick(RemoteMessage message) {
-    // Handle what happens when a notification is clicked
-    print('Notification clicked: ${message.notification?.title}');
+    // Handle notification click
   }
 
   Future<void> _showLocalNotification(RemoteMessage message) async {
@@ -126,60 +112,81 @@ class ClassScheduleScreenState extends State<ClassScheduleScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(classData == null ? 'Add Class' : 'Edit Class'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(labelText: 'Title'),
-              ),
-              TextField(
-                controller: descriptionController,
-                decoration: const InputDecoration(labelText: 'Description'),
-              ),
-              TextField(
-                readOnly: true,
-                controller: TextEditingController(
-                  text: selectedDate != null
-                      ? DateFormat('yyyy-MM-dd').format(selectedDate!)
-                      : '',
+          backgroundColor: Colors.white,
+          title: Text(
+            classData == null ? 'Add Class' : 'Edit Class',
+            style: TextStyle(color: Colors.indigo),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Title',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-                decoration: const InputDecoration(labelText: 'Date'),
-                onTap: () async {
-                  final pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: selectedDate ?? DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2100),
-                  );
-                  if (pickedDate != null) {
-                    selectedDate = pickedDate;
-                  }
-                },
-              ),
-              TextField(
-                readOnly: true,
-                controller: TextEditingController(
-                  text: selectedTime?.format(context) ?? 'No Time Selected',
+                const SizedBox(height: 10),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-                decoration: const InputDecoration(labelText: 'Time'),
-                onTap: () async {
-                  final pickedTime = await showTimePicker(
-                    context: context,
-                    initialTime: selectedTime ?? TimeOfDay.now(),
-                  );
-                  if (pickedTime != null) {
-                    selectedTime = pickedTime;
-                  }
-                },
-              ),
-            ],
+                const SizedBox(height: 10),
+                TextField(
+                  readOnly: true,
+                  controller: TextEditingController(
+                    text: selectedDate != null
+                        ? DateFormat('yyyy-MM-dd').format(selectedDate!)
+                        : '',
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Date',
+                    border: OutlineInputBorder(),
+                  ),
+                  onTap: () async {
+                    final pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (pickedDate != null) {
+                      selectedDate = pickedDate;
+                    }
+                  },
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  readOnly: true,
+                  controller: TextEditingController(
+                    text: selectedTime?.format(context) ?? '',
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Time',
+                    border: OutlineInputBorder(),
+                  ),
+                  onTap: () async {
+                    final pickedTime = await showTimePicker(
+                      context: context,
+                      initialTime: selectedTime ?? TimeOfDay.now(),
+                    );
+                    if (pickedTime != null) {
+                      selectedTime = pickedTime;
+                    }
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -194,6 +201,9 @@ class ClassScheduleScreenState extends State<ClassScheduleScreen> {
                   });
                 }
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.indigo,
+              ),
               child: const Text('Save'),
             ),
           ],
@@ -205,47 +215,68 @@ class ClassScheduleScreenState extends State<ClassScheduleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Class Schedule')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.indigo,
+        title:
+            const Text('Class Schedule', style: TextStyle(color: Colors.white)),
+      ),
       body: _classes.isEmpty
-          ? const Center(child: Text('No classes yet'))
+          ? const Center(
+              child: Text('No classes yet',
+                  style: TextStyle(color: Colors.indigo)))
           : ListView.builder(
               itemCount: _classes.length,
               itemBuilder: (context, index) {
                 final classItem = _classes[index];
-                return ListTile(
-                  title: Text(classItem['title']),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${classItem['date']} at ${classItem['time']}'),
-                      Text(
-                        'Description: ${classItem['description']}',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ],
+                return Card(
+                  margin: const EdgeInsets.all(10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
                   ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => _editClass(context, classItem),
+                  elevation: 3,
+                  child: ListTile(
+                    title: Text(
+                      classItem['title'],
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.indigo,
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () async {
-                          await _dbHelper.deleteClass(classItem['id']);
-                          _loadClasses();
-                        },
-                      ),
-                    ],
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${classItem['date']} at ${classItem['time']}'),
+                        Text(
+                          'Description: ${classItem['description']}',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () => _editClass(context, classItem),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () async {
+                            await _dbHelper.deleteClass(classItem['id']);
+                            _loadClasses();
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
             ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.indigo,
         onPressed: () => _addClass(context),
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

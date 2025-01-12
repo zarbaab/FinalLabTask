@@ -1,45 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'db_helper.dart';
 
 class AssignmentTrackerScreen extends StatefulWidget {
   const AssignmentTrackerScreen({super.key});
 
   @override
-  AssignmentTrackerScreenState createState() => AssignmentTrackerScreenState();
+  State<AssignmentTrackerScreen> createState() =>
+      _AssignmentTrackerScreenState();
 }
 
-class AssignmentTrackerScreenState extends State<AssignmentTrackerScreen> {
-  final DBHelper _dbHelper = DBHelper.instance;
-  List<Map<String, dynamic>> _assignments = [];
+class _AssignmentTrackerScreenState extends State<AssignmentTrackerScreen> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  String? _selectedCourse;
+  String? _selectedProfessor;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadAssignments();
+  Future<List<Map<String, dynamic>>> _fetchCoursesAndProfessors() async {
+    final snapshot = await _firestore.collection('courses').get();
+    return snapshot.docs.map((doc) {
+      return {
+        'courseName': doc['courseName'],
+        'professorName': doc['professorName'],
+      };
+    }).toList();
   }
 
-  Future<void> _loadAssignments() async {
-    final data = await _dbHelper.getAssignments();
-    setState(() {
-      _assignments = data;
-    });
-  }
-
-  Future<void> _addAssignment(BuildContext context) async {
-    final result = await _showAssignmentDialog(context);
-    if (result != null) {
-      await _dbHelper.addAssignment(result);
-      _loadAssignments();
-    }
-  }
-
-  Future<void> _editAssignment(
-      BuildContext context, Map<String, dynamic> assignment) async {
-    final result = await _showAssignmentDialog(context, assignment);
-    if (result != null) {
-      await _dbHelper.updateAssignment(assignment['id'], result);
-      _loadAssignments();
+  Future<void> _addOrEditAssignment(
+      [Map<String, dynamic>? assignmentData]) async {
+    final assignmentDetails =
+        await _showAssignmentDialog(context, assignmentData);
+    if (assignmentDetails != null) {
+      if (assignmentData == null) {
+        // Add a new assignment
+        await _firestore.collection('assignments').add({
+          'courseName': _selectedCourse,
+          'professorName': _selectedProfessor,
+          ...assignmentDetails,
+        });
+      } else {
+        // Edit an existing assignment
+        await _firestore
+            .collection('assignments')
+            .doc(assignmentData['id'])
+            .update({
+          'courseName': _selectedCourse,
+          'professorName': _selectedProfessor,
+          ...assignmentDetails,
+        });
+      }
     }
   }
 
@@ -60,20 +68,40 @@ class AssignmentTrackerScreenState extends State<AssignmentTrackerScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: Colors.white,
           title: Text(
-              assignmentData == null ? 'Add Assignment' : 'Edit Assignment'),
+            assignmentData == null ? 'Add Assignment' : 'Edit Assignment',
+            style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.indigo),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: titleController,
-                  decoration: const InputDecoration(labelText: 'Title'),
+                  decoration: InputDecoration(
+                    labelText: 'Title',
+                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.indigo),
+                    ),
+                  ),
                 ),
+                const SizedBox(height: 8),
                 TextField(
                   controller: descriptionController,
-                  decoration: const InputDecoration(labelText: 'Description'),
+                  decoration: InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.indigo),
+                    ),
+                  ),
                 ),
+                const SizedBox(height: 8),
                 TextField(
                   readOnly: true,
                   controller: TextEditingController(
@@ -81,7 +109,13 @@ class AssignmentTrackerScreenState extends State<AssignmentTrackerScreen> {
                         ? DateFormat('yyyy-MM-dd').format(selectedDate!)
                         : '',
                   ),
-                  decoration: const InputDecoration(labelText: 'Due Date'),
+                  decoration: InputDecoration(
+                    labelText: 'Due Date',
+                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.indigo),
+                    ),
+                  ),
                   onTap: () async {
                     final pickedDate = await showDatePicker(
                       context: context,
@@ -96,6 +130,7 @@ class AssignmentTrackerScreenState extends State<AssignmentTrackerScreen> {
                     }
                   },
                 ),
+                const SizedBox(height: 8),
                 TextField(
                   readOnly: true,
                   controller: TextEditingController(
@@ -103,7 +138,13 @@ class AssignmentTrackerScreenState extends State<AssignmentTrackerScreen> {
                         ? _formatTimeOfDay(selectedTime!)
                         : 'No Time Selected',
                   ),
-                  decoration: const InputDecoration(labelText: 'Due Time'),
+                  decoration: InputDecoration(
+                    labelText: 'Due Time',
+                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.indigo),
+                    ),
+                  ),
                   onTap: () async {
                     final pickedTime = await showTimePicker(
                       context: context,
@@ -122,7 +163,8 @@ class AssignmentTrackerScreenState extends State<AssignmentTrackerScreen> {
           actions: [
             TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel')),
+                child:
+                    const Text('Cancel', style: TextStyle(color: Colors.red))),
             ElevatedButton(
               onPressed: () {
                 if (titleController.text.isNotEmpty &&
@@ -137,6 +179,7 @@ class AssignmentTrackerScreenState extends State<AssignmentTrackerScreen> {
                 }
               },
               child: const Text('Save'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
             ),
           ],
         );
@@ -144,85 +187,128 @@ class AssignmentTrackerScreenState extends State<AssignmentTrackerScreen> {
     );
   }
 
-  Future<void> _toggleCompletion(int id, int isCompleted) async {
-    await _dbHelper.updateAssignmentCompletion(id, isCompleted == 0 ? 1 : 0);
-    _loadAssignments();
+  TimeOfDay _parseTimeOfDay(String timeString) {
+    final parts = timeString.split(':');
+    final hour = int.parse(parts[0]);
+    final minute = int.parse(parts[1].split(' ')[0]);
+    return TimeOfDay(hour: hour, minute: minute);
   }
 
   String _formatTimeOfDay(TimeOfDay time) {
     final now = DateTime.now();
-    final formattedTime = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      time.hour,
-      time.minute,
-    );
-    return DateFormat.jm().format(formattedTime); // Converts to hh:mm AM/PM
+    final dateTime =
+        DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    return DateFormat('hh:mm a').format(dateTime);
   }
 
-  TimeOfDay _parseTimeOfDay(String time) {
-    final format = DateFormat.jm(); // Parses hh:mm AM/PM
-    final DateTime parsedTime = format.parse(time);
-    return TimeOfDay(hour: parsedTime.hour, minute: parsedTime.minute);
+  Widget _buildAssignmentList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore.collection('assignments').snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const CircularProgressIndicator();
+
+        final assignments = snapshot.data!.docs;
+
+        return ListView.builder(
+          itemCount: assignments.length,
+          itemBuilder: (context, index) {
+            final assignment = assignments[index];
+            return Card(
+              elevation: 4,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              child: ListTile(
+                title: Text(assignment['title'],
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                subtitle: Text(
+                  "${assignment['courseName']} - ${assignment['professorName']}\nDue: ${assignment['due_date']} at ${assignment['due_time']}",
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.indigo),
+                  onPressed: () {
+                    _addOrEditAssignment({
+                      ...assignment.data() as Map<String, dynamic>,
+                      'id': assignment.id,
+                    });
+                  },
+                ),
+                onLongPress: () async {
+                  // Delete assignment
+                  await _firestore
+                      .collection('assignments')
+                      .doc(assignment.id)
+                      .delete();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Assignment deleted!")),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.indigo,
         title: const Text('Assignment Tracker'),
       ),
-      body: _assignments.isEmpty
-          ? const Center(child: Text('No assignments yet'))
-          : ListView.builder(
-              itemCount: _assignments.length,
-              itemBuilder: (context, index) {
-                final assignment = _assignments[index];
-                return ListTile(
-                  title: Text(assignment['title']),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Due Date: ${assignment['due_date']}'),
-                      Text('Due Time: ${assignment['due_time']}'),
-                      Text('Description: ${assignment['description']}'),
-                    ],
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          assignment['is_completed'] == 1
-                              ? Icons.check_box
-                              : Icons.check_box_outline_blank,
-                          color: assignment['is_completed'] == 1
-                              ? Colors.green
-                              : Colors.grey,
-                        ),
-                        onPressed: () => _toggleCompletion(
-                            assignment['id'], assignment['is_completed']),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => _editAssignment(context, assignment),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () async {
-                          await _dbHelper.deleteAssignment(assignment['id']);
-                          _loadAssignments();
-                        },
-                      ),
-                    ],
-                  ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: _fetchCoursesAndProfessors(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const CircularProgressIndicator();
+
+                final courses = snapshot.data!;
+                return DropdownButton<String>(
+                  value: _selectedCourse,
+                  hint: const Text("Select a Course"),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCourse = value;
+                      _selectedProfessor = courses.firstWhere((course) =>
+                          course['courseName'] == value)['professorName'];
+                    });
+                  },
+                  items: courses.map((course) {
+                    return DropdownMenuItem<String>(
+                      value: course['courseName'] as String,
+                      child: Text(course['courseName'] as String),
+                    );
+                  }).toList(),
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _addAssignment(context),
-        child: const Icon(Icons.add),
+            const SizedBox(height: 16),
+            if (_selectedProfessor != null)
+              Text("Professor: $_selectedProfessor",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => _addOrEditAssignment(),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
+              child: const Text(
+                'Add Assignment',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(child: _buildAssignmentList()),
+          ],
+        ),
       ),
     );
   }

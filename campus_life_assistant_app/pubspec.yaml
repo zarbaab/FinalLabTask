@@ -21,11 +21,15 @@ dependencies:
   sqflite: ^2.3.1
   path: ^1.8.3
   sqflite_common_ffi: ^2.0.0
-  sqflite_common_ffi_web: 0.4.5+4 
+  sqflite_common_ffi_web: ^0.4.5+4 
   path_provider: ^2.0.15
-  intl: ^0.18.0
+  intl: ^0.20.1
   firebase_messaging: ^15.1.6
   flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.0
+  url_launcher: ^6.1.7
+  percent_indicator: ^4.2.4
+  
 
 
 dev_dependencies:
@@ -37,3 +41,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/trans_bg.png
+    - assets/feedback.png
+    - assets/asignment.png
+    - assets/group.png
+    - assets/class.png
+    - assets/courses.png
+    - assets/banner.png
+
+

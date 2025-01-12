@@ -12,11 +12,13 @@ class SignUpPage extends StatefulWidget {
 class SignUpPageState extends State<SignUpPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _usernameController = TextEditingController(); // Added username field
   bool _isLoading = false;
 
   Future<void> _signUp() async {
     setState(() => _isLoading = true);
     try {
+      // Create a new user
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -25,10 +27,14 @@ class SignUpPageState extends State<SignUpPage> {
         const SnackBar(content: Text("Sign-Up Successful!")),
       );
 
-      // Navigate to the dashboard
+      // Navigate to the dashboard with username
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        MaterialPageRoute(
+          builder: (context) => DashboardScreen(
+            username: _usernameController.text.trim(),
+          ),
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -85,6 +91,22 @@ class SignUpPageState extends State<SignUpPage> {
                     ),
                   ),
                   const SizedBox(height: 30),
+                  // Username Field
+                  TextField(
+                    controller: _usernameController,
+                    decoration: InputDecoration(
+                      hintText: "Username",
+                      prefixIcon: const Icon(Icons.person, color: Colors.white),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.2),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  const SizedBox(height: 20),
                   // Email Field
                   TextField(
                     controller: _emailController,
